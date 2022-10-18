@@ -6,7 +6,7 @@
       </h1>
       <article class="w-full flex flex-col lg:flex-row lg:items-start pt-12">
         <!-- Filter Card -->
-        <section id="filters" class="w-full lg:w-[30%] flex flex-col justify-start p-4 border shadow-lg rounded-lg">
+        <section id="filters" class="w-full lg:w-[30%] flex flex-col justify-start p-4 border shadow-lg rounded-lg bg-white">
           <h2 class="text-xl font-bold">Filter pokedex here</h2>
           <div class="w-full flex flex-col pt-4">
             <div @click="toggleTypeFilter = !toggleTypeFilter" class="w-full flex items-center justify-between border-b border-gray-400 pb-2 cursor-pointer">
@@ -19,7 +19,7 @@
             >
               <div v-for="typeFilter in filter.type" class="px-4 py-2 flex items-center rounded-full mt-2 mr-2 text-sm" :class="typeFilter.color">
                 <input v-model="typeFilter.selected" type="checkbox" :id="typeFilter.label" />
-                <label :for="typeFilter.label" class="ml-2">{{ typeFilter.label }}</label>
+                <label :for="typeFilter.label" class="ml-2">{{ typeFilter.label.toUpperCase() }}</label>
               </div>
             </div>
           </div>
@@ -71,20 +71,20 @@
         </section>
 
         <!-- Pokedex section -->
-        <section class="w-full lg:w-[60%] flex flex-col justify-start">
-          <ul v-if="!this.isFiltered">
-            <li v-for="pokemon in reactivePokemons" :key="pokemon.id">
-              {{ pokemon.name }}
-            </li>
-          </ul>
-          <ul v-else-if="this.isFiltered">
-            <li v-for="pokemon in filteredPokemons" :key="pokemon.id">
-              {{ pokemon.name }}
-            </li>
-          </ul>
+        <section class="w-full lg:w-[60%] flex flex-col justify-start px-4">
+          <h1 class="text-xl font-bold">
+            Use below search field to get pokemons by <span class="text-green-500">name</span>
+          </h1>
+          <h2 class="font-bold mt-2">
+            or, you can use advanced search with provided <span class="text-green-500">filter card</span>.
+          </h2>
+          <input
+            type="text"
+            id="name-search"
+            class="w-full p-2 rounded-md focus:outline-none border-2 border-green-500 mt-2 text-md"
+            placeholder="Search pokemon by name...">
         </section>
       </article>
-
     </section>
   </main>
 </template>
@@ -119,10 +119,6 @@ const GET_POKEMONS_QUERY = gql`
   }
 `
 
-// const GET_FILTERED_POKEMONS = gql`
-//     query getPokemons($where: )
-// `
-
 export default {
   name: "Homepage",
   data() {
@@ -131,6 +127,8 @@ export default {
       filteredPokemons: null,
       currentOffset: 0,
       nextOffset: 20,
+      disableNextButton: false,
+      disablePrevButton: false,
       toggleTypeFilter: false,
       isFiltered: false,
       filter: {
@@ -139,110 +137,96 @@ export default {
         region: 'all-region',
         type: [
           {
-            label: 'Grass',
+            label: 'grass',
             color: 'bg-green-500',
             selected: false
           },
           {
-            label: 'Water',
+            label: 'water',
             color: 'bg-blue-500',
             selected: false
           },
           {
-            label: 'Fire',
+            label: 'fire',
             color: 'bg-red-600',
             selected: false
           },
           {
-            label: 'Electric',
+            label: 'electric',
             color: 'bg-yellow-400',
             selected: false
           },
           {
-            label: 'Normal',
+            label: 'normal',
             color: 'bg-stone-300',
             selected: false
           },
           {
-            label: 'Ice',
+            label: 'ice',
             color: 'bg-cyan-400',
             selected: false
           },
           {
-            label: 'Dark',
+            label: 'dark',
             color: 'bg-black',
             selected: false
           },
           {
-            label: 'Fighting',
+            label: 'fighting',
             color: 'bg-orange-500',
             selected: false
           },
           {
-            label: 'Fairy',
+            label: 'fairy',
             color: 'bg-rose-400',
             selected: false
           },
           {
-            label: 'Psychic',
+            label: 'psychic',
             color: 'bg-rose-600',
             selected: false
           },
           {
-            label: 'Ghost',
+            label: 'ghost',
             color: 'bg-indigo-800',
             selected: false
           },
           {
-            label: 'Bug',
+            label: 'bug',
             color: 'bg-lime-600',
             selected: false
           },
           {
-            label: 'Flying',
+            label: 'flying',
             color: 'bg-gray-500',
             selected: false
           },
           {
-            label: 'Steel',
+            label: 'steel',
             color: 'bg-slate-400',
             selected: false
           },
           {
-            label: 'Dragon',
+            label: 'dragon',
             color: 'bg-indigo-600',
             selected: false
           },
           {
-            label: 'Ground',
+            label: 'ground',
             color: 'bg-yellow-800',
             selected: false
           },
           {
-            label: 'Poison',
+            label: 'poison',
             color: 'bg-purple-600',
             selected: false
           },
           {
-            label: 'Rock',
+            label: 'rock',
             color: 'bg-amber-800',
             selected: false
           },
         ]
-      }
-    }
-  },
-  computed: {
-    reactivePokemons() {
-      if (this.pokemons) {
-        return this.pokemons.pokemon.map((item) => {
-          return {
-            ...item,
-            official_art: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${item.id}.png`
-          }
-        }).slice(this.currentOffset, this.nextOffset)
-      } else {
-        return []
       }
     }
   },
@@ -251,44 +235,91 @@ export default {
   },
   methods: {
     getPokemons() {
-      const { result } = useQuery(GET_POKEMONS_QUERY)
-      this.pokemons = result
+      const { onResult } = useQuery(GET_POKEMONS_QUERY)
+
+      onResult((result) => {
+        this.pokemons = result.data.pokemon.map((item) => {
+          return {
+            ...item,
+            types: item.details[0].types.map((item) => item.type.name),
+            official_art: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${item.id}.png`
+          }
+        })
+      })
     },
     addOffset() {
-      this.currentOffset += 20
-      this.nextOffset += 20
+      if (this.currentOffset >= 0 && this.nextOffset <= this.pokemons.length) {
+        this.currentOffset += 20
+        this.nextOffset += 20
+        if (this.currentOffset + 20 > this.pokemons.length && this.nextOffset >= this.pokemons.length) {
+          this.disableNextButton = true
+        }
+        if (this.disablePrevButton) {
+          this.disablePrevButton = false
+        }
+      }
+    },
+    reduceOffset() {
+      if (this.currentOffset !== 0) {
+        this.currentOffset -= 20
+        this.nextOffset -= 20
+        if (this.currentOffset - 20 < 0) {
+          this.disablePrevButton = true
+        }
+        if (this.disableNextButton) {
+          this.disableNextButton = false
+        }
+      }
     },
     applyFilter() {
       this.currentOffset = 0
       this.nextOffset = 20
       this.isFiltered = true
+      let typeFiltered = (this.filter.type.filter((item) => item.selected) || []).map(item => item.label)
 
-
-
-      this.filteredPokemons = this.pokemons.pokemon.map((item) => {
+      this.filteredPokemons = this.pokemons.map((item) => {
         return {
           ...item,
           official_art: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${item.id}.png`
         }
       }).filter((item) => {
-        if (!this.filter.generation.includes('all') && !this.filter.region.includes('all')) {
-          return item.legendary === (this.filter.rarity === 'legendary')
-              && item.mythical === (this.filter.rarity === 'mythical')
-              && item.generations.name === this.filter.generation
-              && item.generations.region.name === this.filter.region
-        } else if (this.filter.generation.includes('all') && !this.filter.region.includes('all')) {
-          return item.legendary === (this.filter.rarity === 'legendary')
-              && item.mythical === (this.filter.rarity === 'mythical')
-              && item.generations.region.name === this.filter.region
-        } else if (!this.filter.generation.includes('all') && this.filter.region.includes('all')) {
-          return item.legendary === (this.filter.rarity === 'legendary')
-              && item.mythical === (this.filter.rarity === 'mythical')
-              && item.generations.name === this.filter.generation
-        } else {
-          return item.legendary === (this.filter.rarity === 'legendary')
-              && item.mythical === (this.filter.rarity === 'mythical')
+        if (!this.filter.rarity.includes('all')) {
+          return item.legendary === (this.filter.rarity === 'legendary') && item.mythical === (this.filter.rarity === 'mythical')
+        }
+      }).filter((item) => {
+        if (!this.filter.generation.includes('all')) {
+          return item.generations.name === this.filter.generation
+        }
+      }).filter((item) => {
+        if (!this.filter.region.includes('all')) {
+          return item.generations.region.name === this.filter.region
         }
       }).slice(this.currentOffset, this.nextOffset)
+
+      // this.filteredPokemons = this.pokemons.map((item) => {
+      //   return {
+      //     ...item,
+      //     official_art: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${item.id}.png`
+      //   }
+      // }).filter((item) => {
+      //   if (!this.filter.generation.includes('all') && !this.filter.region.includes('all')) { // check if generation and region are filtered
+      //     return item.legendary === (this.filter.rarity === 'legendary')
+      //         && item.mythical === (this.filter.rarity === 'mythical')
+      //         && item.generations.name === this.filter.generation
+      //         && item.generations.region.name === this.filter.region
+      //   } else if (this.filter.generation.includes('all') && !this.filter.region.includes('all')) { // check if generation is not filtered and region is filtered
+      //     return item.legendary === (this.filter.rarity === 'legendary')
+      //         && item.mythical === (this.filter.rarity === 'mythical')
+      //         && item.generations.region.name === this.filter.region
+      //   } else if (!this.filter.generation.includes('all') && this.filter.region.includes('all')) { // check if generation is filtered and region is not
+      //     return item.legendary === (this.filter.rarity === 'legendary')
+      //         && item.mythical === (this.filter.rarity === 'mythical')
+      //         && item.generations.name === this.filter.generation
+      //   } else { // if both are not filtered
+      //     return item.legendary === (this.filter.rarity === 'legendary')
+      //         && item.mythical === (this.filter.rarity === 'mythical')
+      //   }
+      // }).slice(this.currentOffset, this.nextOffset)
     }
   }
 }
