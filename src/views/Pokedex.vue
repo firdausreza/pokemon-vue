@@ -14,12 +14,12 @@
               <font-awesome-icon icon="fa-solid fa-chevron-down" class="fa-1x transition duration-350 ease-in-out" :class="toggleTypeFilter ? 'rotate-180' : ''" />
             </div>
             <div
-                v-show="toggleTypeFilter"
-                class="w-full flex flex-wrap items-start pt-2 text-white font-semibold transition-all"
+              v-show="toggleTypeFilter"
+              class="w-full flex flex-wrap items-start pt-2 text-white font-semibold transition-all"
             >
               <div v-for="typeFilter in filter.type" class="px-4 py-2 flex items-center rounded-full mt-2 mr-2 text-sm" :class="typeFilter.color">
                 <input v-model="typeFilter.selected" type="checkbox" :id="typeFilter.label" />
-                <label :for="typeFilter.label" class="ml-2">{{ typeFilter.label.toUpperCase() }}</label>
+                <label :for="typeFilter.label" class="ml-2 capitalize">{{ typeFilter.label }}</label>
               </div>
             </div>
           </div>
@@ -64,25 +64,53 @@
             <button @click="applyFilter" class="bg-blue-400 rounded-md mt-4 text-white py-2 w-full mr-2">
               Apply Filter
             </button>
-            <button class="bg-red-400 rounded-md mt-4 text-white py-2 w-full">
+            <button @click="resetFilter" class="bg-red-400 rounded-md mt-4 text-white py-2 w-full">
               Reset
             </button>
           </div>
         </section>
-
         <!-- Pokedex section -->
-        <section class="w-full lg:w-[60%] flex flex-col justify-start px-4">
+        <section class="w-full lg:w-[70%] flex flex-col justify-start px-4 mt-8 lg:mt-0">
           <h1 class="text-xl font-bold">
             Use below search field to get pokemons by <span class="text-green-500">name</span>
           </h1>
           <h2 class="font-bold mt-2">
-            or, you can use advanced search with provided <span class="text-green-500">filter card</span>.
+            or, you can use advanced search with provided <span class="text-green-500">filter contents</span>.
           </h2>
-          <input
-            type="text"
-            id="name-search"
-            class="w-full p-2 rounded-md focus:outline-none border-2 border-green-500 mt-2 text-md"
-            placeholder="Search pokemon by name...">
+          <div class="flex border-2 border-green-500 mt-2 text-md w-full rounded-md">
+            <input
+              v-model="nameSearch"
+              type="text"
+              id="name-search"
+              class="flex-1 p-2 focus:outline-none border-none rounded-l-md "
+              placeholder="Search pokemon by name...">
+            <button @click="handleOnNameSearch" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white outline-none border-none">
+              Search
+            </button>
+          </div>
+          <h3 class="mt-2 text-sm">
+            Current filters:
+            <span v-if="isFiltered" v-for="(text, index) in appliedFilter" class="font-bold capitalize">
+              {{ index === (appliedFilter.length-1) ? text : `${text}, ` }}
+            </span>
+          </h3>
+          <div v-show="searchPrompt" class="w-full flex items-center justify-between text-lg mt-4">
+            <h1>
+              Search results for <span class="font-bold">'{{ this.nameSearch }}'</span>
+            </h1>
+            <button @click="clearResults" class="bg-red-500 text-white text-sm px-3 py-1 rounded-md">
+              Clear
+            </button>
+          </div>
+          <section v-if="!isLoadingPokemons" class="w-full py-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+            <poke-card v-if="isFiltered && !searchPrompt" v-for="pokemon in (filteredPokemons || []).slice(currentOffset, nextOffset)" :key="pokemon.id" :pokemon="pokemon" />
+            <poke-card v-else-if="isFiltered && searchPrompt" v-for="pokemon in (searchedPokemons || []).slice(currentOffset, nextOffset)" :key="pokemon.id" :pokemon="pokemon" />
+            <poke-card v-else-if="!isFiltered && searchPrompt" v-for="pokemon in (searchedPokemons || []).slice(currentOffset, nextOffset)" :key="pokemon.id" :pokemon="pokemon" />
+            <poke-card v-else v-for="pokemon in (pokemons || []).slice(currentOffset, nextOffset)" :key="pokemon.id" :pokemon="pokemon" />
+          </section>
+          <section v-else class="w-full py-24 flex items-center justify-center">
+            <img src="https://raw.githubusercontent.com/firdausreza/vue-todo-lists/master/src/assets/load.svg" alt="loading" class="w-[100px] h-[100px] animate-spin">
+          </section>
         </section>
       </article>
     </section>
@@ -92,6 +120,7 @@
 <script>
 import gql from 'graphql-tag';
 import {useQuery} from '@vue/apollo-composable';
+import Pokecard from "../components/pokedex/Pokecard.vue";
 
 const GET_POKEMONS_QUERY = gql`
   query getPokemons {
@@ -121,16 +150,24 @@ const GET_POKEMONS_QUERY = gql`
 
 export default {
   name: "Homepage",
+  components: {
+    'poke-card': Pokecard
+  },
   data() {
     return {
+      appliedFilter: null,
       pokemons: null,
       filteredPokemons: null,
+      searchedPokemons: null,
       currentOffset: 0,
       nextOffset: 20,
       disableNextButton: false,
       disablePrevButton: false,
       toggleTypeFilter: false,
       isFiltered: false,
+      isLoadingPokemons: false,
+      searchPrompt: false,
+      nameSearch: '',
       filter: {
         rarity: 'all-rarity',
         generation: 'all-generation',
@@ -148,7 +185,7 @@ export default {
           },
           {
             label: 'fire',
-            color: 'bg-red-600',
+            color: 'bg-orange-500',
             selected: false
           },
           {
@@ -173,17 +210,17 @@ export default {
           },
           {
             label: 'fighting',
-            color: 'bg-orange-500',
+            color: 'bg-red-700',
             selected: false
           },
           {
             label: 'fairy',
-            color: 'bg-rose-400',
+            color: 'bg-rose-300',
             selected: false
           },
           {
             label: 'psychic',
-            color: 'bg-rose-600',
+            color: 'bg-pink-300',
             selected: false
           },
           {
@@ -230,8 +267,17 @@ export default {
       }
     }
   },
+  computed: {
+    typeFiltered() {
+      return (this.filter.type.filter((item) => item.selected) || []).map(item => item.label)
+    }
+  },
   mounted() {
+    this.isLoadingPokemons = true
     this.getPokemons()
+    setTimeout(() => {
+      this.isLoadingPokemons = false
+    }, 2500)
   },
   methods: {
     getPokemons() {
@@ -241,7 +287,7 @@ export default {
         this.pokemons = result.data.pokemon.map((item) => {
           return {
             ...item,
-            types: item.details[0].types.map((item) => item.type.name),
+            details: item.details[0].types.map((item) => item.type.name),
             official_art: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${item.id}.png`
           }
         })
@@ -272,54 +318,82 @@ export default {
       }
     },
     applyFilter() {
+      this.isLoadingPokemons = true
       this.currentOffset = 0
       this.nextOffset = 20
       this.isFiltered = true
-      let typeFiltered = (this.filter.type.filter((item) => item.selected) || []).map(item => item.label)
+      this.appliedFilter = [...this.typeFiltered, this.filter.rarity, this.filter.generation, this.filter.region]
 
-      this.filteredPokemons = this.pokemons.map((item) => {
-        return {
-          ...item,
-          official_art: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${item.id}.png`
+      this.filteredPokemons = (this.pokemons || []).filter((poke) => { // filter by rarity
+        if (!this.filter.rarity.includes('all') || this.filter.rarity !== 'common') {
+          if (this.filter.rarity === 'legendary') return poke.legendary === true
+          else if (this.filter.rarity === 'mythical') return poke.mythical === true
+        } return poke
+      }).filter((poke) => { // filter by generations
+        if (!this.filter.generation.includes('all')) return poke.generations.name.toLowerCase() === this.filter.generation.toLowerCase()
+        else return poke
+      }).filter((poke) => { // filter by region
+        if (!this.filter.region.includes('all')) return poke.generations.region.name.toLowerCase() === this.filter.region.toLowerCase()
+        else return poke
+      }).filter((poke) => { // filter by type
+        if (this.typeFiltered && this.typeFiltered.length > 1) {
+          if (poke.details.length > 1) {
+            return poke.details.every((type) => this.typeFiltered.includes(type))
+          }
         }
-      }).filter((item) => {
-        if (!this.filter.rarity.includes('all')) {
-          return item.legendary === (this.filter.rarity === 'legendary') && item.mythical === (this.filter.rarity === 'mythical')
-        }
-      }).filter((item) => {
-        if (!this.filter.generation.includes('all')) {
-          return item.generations.name === this.filter.generation
-        }
-      }).filter((item) => {
-        if (!this.filter.region.includes('all')) {
-          return item.generations.region.name === this.filter.region
-        }
-      }).slice(this.currentOffset, this.nextOffset)
+        else if (this.typeFiltered && this.typeFiltered.length === 1) return poke.details.some((type) => this.typeFiltered.includes(type))
+        else return poke
+      }).sort((a, b) => a.id - b.id)
 
-      // this.filteredPokemons = this.pokemons.map((item) => {
-      //   return {
-      //     ...item,
-      //     official_art: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${item.id}.png`
-      //   }
-      // }).filter((item) => {
-      //   if (!this.filter.generation.includes('all') && !this.filter.region.includes('all')) { // check if generation and region are filtered
-      //     return item.legendary === (this.filter.rarity === 'legendary')
-      //         && item.mythical === (this.filter.rarity === 'mythical')
-      //         && item.generations.name === this.filter.generation
-      //         && item.generations.region.name === this.filter.region
-      //   } else if (this.filter.generation.includes('all') && !this.filter.region.includes('all')) { // check if generation is not filtered and region is filtered
-      //     return item.legendary === (this.filter.rarity === 'legendary')
-      //         && item.mythical === (this.filter.rarity === 'mythical')
-      //         && item.generations.region.name === this.filter.region
-      //   } else if (!this.filter.generation.includes('all') && this.filter.region.includes('all')) { // check if generation is filtered and region is not
-      //     return item.legendary === (this.filter.rarity === 'legendary')
-      //         && item.mythical === (this.filter.rarity === 'mythical')
-      //         && item.generations.name === this.filter.generation
-      //   } else { // if both are not filtered
-      //     return item.legendary === (this.filter.rarity === 'legendary')
-      //         && item.mythical === (this.filter.rarity === 'mythical')
-      //   }
-      // }).slice(this.currentOffset, this.nextOffset)
+      setTimeout(() => {
+        this.isLoadingPokemons = false
+      }, 2500)
+    },
+    resetFilter() {
+      this.isLoadingPokemons = true
+      this.isFiltered = false
+      this.filteredPokemons = []
+      this.appliedFilter = []
+      this.currentOffset = 0
+      this.nextOffset = 20
+      this.filter.rarity = 'all-rarity'
+      this.filter.generation = 'all-generation'
+      this.filter.region = 'all-region'
+      this.filter.type.forEach((item) => {
+        if (item.selected) item.selected = false
+      })
+      setTimeout(() => {
+        this.isLoadingPokemons = false
+      }, 2000)
+    },
+    handleOnNameSearch() {
+      if (this.nameSearch !== '') {
+        this.isLoadingPokemons = true
+        this.searchPrompt = true
+        if (this.isFiltered) {
+          this.searchPrompt = true
+          this.searchedPokemons = this.filteredPokemons.filter((poke) => {
+            return poke.name.includes(this.nameSearch.toLowerCase())
+          }).sort((a, b) => a.id - b.id)
+        } else {
+          this.searchPrompt = true
+          this.searchedPokemons = this.pokemons.filter((poke) => {
+            return poke.name.includes(this.nameSearch.toLowerCase())
+          }).sort((a, b) => a.id - b.id)
+        }
+        setTimeout(() => {
+          this.isLoadingPokemons = false
+        }, 2000)
+      }
+    },
+    clearResults() {
+      this.isLoadingPokemons = true
+      this.searchPrompt = false
+      this.nameSearch = ''
+      this.searchedPokemons = null
+      setTimeout(() => {
+        this.isLoadingPokemons = false
+      }, 2000)
     }
   }
 }
