@@ -1,6 +1,6 @@
 <template>
-  <main>
-    <section class="max-w-7xl mx-auto px-4 pt-8">
+  <main class="py-12">
+    <section class="max-w-7xl mx-auto px-4">
       <h1 class="text-4xl text-center">
         Welcome to <span class="font-bold text-green-500">PokePedia!</span>
       </h1>
@@ -70,7 +70,7 @@
           </div>
         </section>
         <!-- Pokedex section -->
-        <section class="w-full lg:w-[70%] flex flex-col justify-start px-4 mt-8 lg:mt-0">
+        <section class="w-full lg:w-[70%] flex flex-col justify-start px-5 mt-8 lg:mt-0">
           <h1 class="text-xl font-bold">
             Use below search field to get pokemons by <span class="text-green-500">name</span>
           </h1>
@@ -94,6 +94,21 @@
               {{ index === (appliedFilter.length-1) ? text : `${text}, ` }}
             </span>
           </h3>
+          <h4 v-show="!isLoadingPokemons" class="text-sm text-gray-400 mt-4">
+            Showing {{ this.currentOffset+1 }}
+            <span v-if="this.currentPokemonsArray === 'pokemons'">
+              -{{ this.nextOffset > (this.pokemons && this.pokemons.length) ? this.pokemons && this.pokemons.length : this.nextOffset }}
+              of {{ this.pokemons && this.pokemons.length }}
+            </span>
+            <span v-else-if="this.currentPokemonsArray === 'filtered'">
+              -{{ this.nextOffset > (this.filteredPokemons && this.filteredPokemons.length) ? this.filteredPokemons && this.filteredPokemons.length : this.nextOffset }}
+              of {{ this.filteredPokemons && this.filteredPokemons.length }}
+            </span>
+            <span v-else>
+              -{{ this.nextOffset > (this.searchedPokemons && this.searchedPokemons.length) ? this.searchedPokemons && this.searchedPokemons.length : this.nextOffset }}
+              of {{ this.searchedPokemons && this.searchedPokemons.length }}
+            </span>
+          </h4>
           <div v-show="searchPrompt" class="w-full flex items-center justify-between text-lg mt-4">
             <h1>
               Search results for <span class="font-bold">'{{ this.nameSearch }}'</span>
@@ -104,12 +119,30 @@
           </div>
           <section v-if="!isLoadingPokemons" class="w-full py-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
             <poke-card v-if="isFiltered && !searchPrompt" v-for="pokemon in (filteredPokemons || []).slice(currentOffset, nextOffset)" :key="pokemon.id" :pokemon="pokemon" />
-            <poke-card v-else-if="isFiltered && searchPrompt" v-for="pokemon in (searchedPokemons || []).slice(currentOffset, nextOffset)" :key="pokemon.id" :pokemon="pokemon" />
-            <poke-card v-else-if="!isFiltered && searchPrompt" v-for="pokemon in (searchedPokemons || []).slice(currentOffset, nextOffset)" :key="pokemon.id" :pokemon="pokemon" />
+            <poke-card v-else-if="(isFiltered || !isFiltered) && searchPrompt" v-for="pokemon in (searchedPokemons || []).slice(currentOffset, nextOffset)" :key="pokemon.id" :pokemon="pokemon" />
+<!--            <poke-card v-else-if="!isFiltered && searchPrompt" v-for="pokemon in (searchedPokemons || []).slice(currentOffset, nextOffset)" :key="pokemon.id" :pokemon="pokemon" />-->
             <poke-card v-else v-for="pokemon in (pokemons || []).slice(currentOffset, nextOffset)" :key="pokemon.id" :pokemon="pokemon" />
           </section>
           <section v-else class="w-full py-24 flex items-center justify-center">
             <img src="https://raw.githubusercontent.com/firdausreza/vue-todo-lists/master/src/assets/load.svg" alt="loading" class="w-[100px] h-[100px] animate-spin">
+          </section>
+          <section v-show="!isLoadingPokemons" id="pagination" class="w-full flex items-center justify-center">
+            <button
+              @click="reduceOffset"
+              class="border border-black px-4 py-2 mr-2"
+              :class="disablePrevButton ? 'border-gray-400 text-gray-400' : ''"
+              :disabled="disablePrevButton"
+            >
+              Prev
+            </button>
+            <button
+              @click="addOffset"
+              class="border border-black px-4 py-2"
+              :class="disableNextButton ? 'border-gray-400 text-gray-400' : ''"
+              :disabled="disableNextButton"
+            >
+              Next
+            </button>
           </section>
         </section>
       </article>
@@ -162,11 +195,12 @@ export default {
       currentOffset: 0,
       nextOffset: 20,
       disableNextButton: false,
-      disablePrevButton: false,
+      disablePrevButton: true,
       toggleTypeFilter: false,
       isFiltered: false,
       isLoadingPokemons: false,
       searchPrompt: false,
+      currentPokemonsArray: 'pokemons',
       nameSearch: '',
       filter: {
         rarity: 'all-rarity',
@@ -279,6 +313,25 @@ export default {
       this.isLoadingPokemons = false
     }, 2500)
   },
+  watch: {
+    currentOffset(newVal) {
+      if (newVal <= 0) {
+        this.currentOffset = 0
+        this.disablePrevButton = true
+      } else {
+        this.disablePrevButton = false
+      }
+    },
+    nextOffset(newVal) {
+      if (this.currentPokemonsArray === 'pokemons') {
+        this.disableNextButton = newVal >= this.pokemons.length;
+      } else if (this.currentPokemonsArray === 'filtered') {
+        this.disableNextButton = newVal >= this.filteredPokemons.length;
+      } else {
+        this.disableNextButton = newVal >= this.searchedPokemons.length;
+      }
+    }
+  },
   methods: {
     getPokemons() {
       const { onResult } = useQuery(GET_POKEMONS_QUERY)
@@ -294,31 +347,30 @@ export default {
       })
     },
     addOffset() {
-      if (this.currentOffset >= 0 && this.nextOffset <= this.pokemons.length) {
-        this.currentOffset += 20
+      console.log('add offset')
+      if (!this.disableNextButton) {
+        this.isLoadingPokemons = true
+        this.currentOffset = this.nextOffset
         this.nextOffset += 20
-        if (this.currentOffset + 20 > this.pokemons.length && this.nextOffset >= this.pokemons.length) {
-          this.disableNextButton = true
-        }
-        if (this.disablePrevButton) {
-          this.disablePrevButton = false
-        }
+        setTimeout(() => {
+          this.isLoadingPokemons = false
+        }, 1500)
       }
     },
     reduceOffset() {
-      if (this.currentOffset !== 0) {
+      console.log('reduce offset')
+      if (!this.disablePrevButton) {
+        this.isLoadingPokemons = true
+        this.nextOffset = this.currentOffset
         this.currentOffset -= 20
-        this.nextOffset -= 20
-        if (this.currentOffset - 20 < 0) {
-          this.disablePrevButton = true
-        }
-        if (this.disableNextButton) {
-          this.disableNextButton = false
-        }
+        setTimeout(() => {
+          this.isLoadingPokemons = false
+        }, 1500)
       }
     },
     applyFilter() {
       this.isLoadingPokemons = true
+      this.currentPokemonsArray = 'filtered'
       this.currentOffset = 0
       this.nextOffset = 20
       this.isFiltered = true
@@ -352,6 +404,7 @@ export default {
     resetFilter() {
       this.isLoadingPokemons = true
       this.isFiltered = false
+      this.currentPokemonsArray = 'pokemons'
       this.filteredPokemons = []
       this.appliedFilter = []
       this.currentOffset = 0
@@ -371,15 +424,19 @@ export default {
         this.isLoadingPokemons = true
         this.searchPrompt = true
         if (this.isFiltered) {
+          this.currentPokemonsArray = 'filtered-search'
           this.searchPrompt = true
           this.searchedPokemons = this.filteredPokemons.filter((poke) => {
             return poke.name.includes(this.nameSearch.toLowerCase())
           }).sort((a, b) => a.id - b.id)
+          this.disableNextButton = this.nextOffset >= this.searchedPokemons.length;
         } else {
+          this.currentPokemonsArray = 'pokemons-search'
           this.searchPrompt = true
           this.searchedPokemons = this.pokemons.filter((poke) => {
             return poke.name.includes(this.nameSearch.toLowerCase())
           }).sort((a, b) => a.id - b.id)
+          this.disableNextButton = this.nextOffset >= this.searchedPokemons.length;
         }
         setTimeout(() => {
           this.isLoadingPokemons = false
@@ -391,6 +448,8 @@ export default {
       this.searchPrompt = false
       this.nameSearch = ''
       this.searchedPokemons = null
+      if (this.isFiltered) this.currentPokemonsArray = 'filtered'
+      else this.currentPokemonsArray = 'pokemons'
       setTimeout(() => {
         this.isLoadingPokemons = false
       }, 2000)

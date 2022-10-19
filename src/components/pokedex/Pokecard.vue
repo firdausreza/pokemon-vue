@@ -1,18 +1,18 @@
 <template>
-  <article class="bg-white rounded-md shadow-md p-3 flex flex-col items-center">
+  <article class="bg-white rounded-md shadow-md p-3 flex flex-col justify-start">
+    <img :src="pokemon.official_art" :alt="pokemon.name" class="w-full">
     <h1 class="text-sm text-gray-400 text-left w-full">#{{ pokemon.id }}</h1>
-    <img :src="pokemon.official_art" :alt="pokemon.name" class="w-full mt-2">
-    <h2 class="text-xl font-bold mt-2 capitalize">
+    <h2 class="text-xl font-bold mt-2 capitalize text-left w-full">
       {{ pokemon.name }}
     </h2>
-    <div class="flex flex-wrap items-center justify-center">
-      <h3 v-show="pokemon.legendary" class="text-sm bg-amber-400 px-3 py-1 text-white rounded-full mr-1 mt-2">
+    <div class="w-full flex flex-wrap items-center justify-start">
+      <h3 v-show="pokemon.legendary" class="text-xs bg-amber-400 px-3 py-1 text-white rounded-full mr-1 mt-2">
         Legendary
       </h3>
-      <h3 v-show="pokemon.mythical" class="text-sm bg-indigo-400 px-3 py-1 text-white rounded-full mr-1 mt-2">
+      <h3 v-show="pokemon.mythical" class="text-xs bg-indigo-400 px-3 py-1 text-white rounded-full mr-1 mt-2">
         Mythical
       </h3>
-      <h3 v-for="type in pokemon.details" class="text-sm capitalize px-3 py-1 text-white rounded-full mr-1 mt-2" :class="typeColorMatch[type]">
+      <h3 v-for="type in pokemon.details" class="text-xs capitalize px-3 py-1 text-white rounded-full mr-1 mt-2" :class="typeColorMatch[type]">
         {{ type }}
       </h3>
     </div>
