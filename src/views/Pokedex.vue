@@ -97,16 +97,16 @@
           <h4 v-show="!isLoadingPokemons" class="text-sm text-gray-400 mt-4">
             Showing {{ this.currentOffset+1 }}
             <span v-if="this.currentPokemonsArray === 'pokemons'">
-              -{{ this.nextOffset > (this.pokemons && this.pokemons.length) ? this.pokemons && this.pokemons.length : this.nextOffset }}
-              of {{ this.pokemons && this.pokemons.length }}
+              - {{ this.nextOffset > (this.pokemons && this.pokemons.length) ? this.pokemons && this.pokemons.length : this.nextOffset }}
+              of {{ this.pokemons && this.pokemons.length }} collections
             </span>
             <span v-else-if="this.currentPokemonsArray === 'filtered'">
-              -{{ this.nextOffset > (this.filteredPokemons && this.filteredPokemons.length) ? this.filteredPokemons && this.filteredPokemons.length : this.nextOffset }}
-              of {{ this.filteredPokemons && this.filteredPokemons.length }}
+              - {{ this.nextOffset > (this.filteredPokemons && this.filteredPokemons.length) ? this.filteredPokemons && this.filteredPokemons.length : this.nextOffset }}
+              of {{ this.filteredPokemons && this.filteredPokemons.length }} collections
             </span>
             <span v-else>
-              -{{ this.nextOffset > (this.searchedPokemons && this.searchedPokemons.length) ? this.searchedPokemons && this.searchedPokemons.length : this.nextOffset }}
-              of {{ this.searchedPokemons && this.searchedPokemons.length }}
+              - {{ this.nextOffset > (this.searchedPokemons && this.searchedPokemons.length) ? this.searchedPokemons && this.searchedPokemons.length : this.nextOffset }}
+              of {{ this.searchedPokemons && this.searchedPokemons.length }} collections
             </span>
           </h4>
           <div v-show="searchPrompt" class="w-full flex items-center justify-between text-lg mt-4">
@@ -129,19 +129,18 @@
           <section v-show="!isLoadingPokemons" id="pagination" class="w-full flex items-center justify-center">
             <button
               @click="reduceOffset"
-              class="border border-black px-4 py-2 mr-2"
-              :class="disablePrevButton ? 'border-gray-400 text-gray-400' : ''"
+              class="px-4 py-2"
               :disabled="disablePrevButton"
             >
-              Prev
+              <font-awesome-icon icon="fa-solid fa-chevron-left" :class="disablePrevButton ? 'text-gray-400' : 'text-black'" />
             </button>
+            <h5 class="mx-3">{{ this.page.currentPage }} / {{ this.page.totalPage }}</h5>
             <button
               @click="addOffset"
-              class="border border-black px-4 py-2"
-              :class="disableNextButton ? 'border-gray-400 text-gray-400' : ''"
+              class="px-4 py-2"
               :disabled="disableNextButton"
             >
-              Next
+              <font-awesome-icon icon="fa-solid fa-chevron-right" :class="disableNextButton ? 'text-gray-400' : 'text-black'" />
             </button>
           </section>
         </section>
@@ -200,8 +199,12 @@ export default {
       isFiltered: false,
       isLoadingPokemons: false,
       searchPrompt: false,
-      currentPokemonsArray: 'pokemons',
+      currentPokemonsArray: '',
       nameSearch: '',
+      page: {
+        currentPage: 1,
+        totalPage: 0
+      },
       filter: {
         rarity: 'all-rarity',
         generation: 'all-generation',
@@ -330,6 +333,18 @@ export default {
       } else {
         this.disableNextButton = newVal >= this.searchedPokemons.length;
       }
+    },
+    currentPokemonsArray(newVal) {
+      if (newVal === 'pokemons') {
+        this.page.currentPage = 1
+        this.page.totalPage = Math.ceil(this.pokemons.length/20)
+      } else if (newVal === 'filtered') {
+        this.page.currentPage = 1
+        this.page.totalPage = Math.ceil(this.filteredPokemons.length/20)
+      } else if (newVal.includes('search')) {
+        this.page.currentPage = 1
+        this.page.totalPage = Math.ceil(this.searchedPokemons.length/20)
+      }
     }
   },
   methods: {
@@ -344,25 +359,26 @@ export default {
             official_art: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${item.id}.png`
           }
         })
+        this.currentPokemonsArray = 'pokemons'
       })
     },
     addOffset() {
-      console.log('add offset')
       if (!this.disableNextButton) {
         this.isLoadingPokemons = true
         this.currentOffset = this.nextOffset
         this.nextOffset += 20
+        this.page.currentPage++
         setTimeout(() => {
           this.isLoadingPokemons = false
         }, 1500)
       }
     },
     reduceOffset() {
-      console.log('reduce offset')
       if (!this.disablePrevButton) {
         this.isLoadingPokemons = true
         this.nextOffset = this.currentOffset
         this.currentOffset -= 20
+        this.page.currentPage--
         setTimeout(() => {
           this.isLoadingPokemons = false
         }, 1500)
@@ -409,6 +425,8 @@ export default {
       this.appliedFilter = []
       this.currentOffset = 0
       this.nextOffset = 20
+      this.page.currentPage = 1
+      this.page.totalPage = Math.ceil(this.pokemons.length/20)
       this.filter.rarity = 'all-rarity'
       this.filter.generation = 'all-generation'
       this.filter.region = 'all-region'
