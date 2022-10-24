@@ -1,22 +1,22 @@
 <template>
-  <article class="bg-white rounded-md shadow-md p-3 flex flex-col justify-start">
+  <router-link :to="{ name: 'pokemon-details', params: { name: pokemon.name } }" class="relative bg-white rounded-md shadow-md p-3 flex flex-col justify-start cursor-pointer hover:border hover:border-green-500">
+    <h3 v-show="pokemon.legendary" class="w-max absolute top-0 left-0 shadow-md text-xs bg-amber-400 px-1.5 py-1 text-white rounded-r-full mr-1 mt-2">
+      Legendary
+    </h3>
+    <h3 v-show="pokemon.mythical" class="w-max absolute top-0 left-0 shadow-md text-xs bg-indigo-400 px-1.5 py-1 text-white rounded-r-full mr-1 mt-2">
+      Mythical
+    </h3>
     <img :src="pokemon.official_art" :alt="pokemon.name" class="w-full">
     <h1 class="text-sm text-gray-400 text-left w-full">#{{ pokemon.id }}</h1>
     <h2 class="text-xl font-bold mt-2 capitalize text-left w-full">
       {{ pokemon.name }}
     </h2>
     <div class="w-full flex flex-wrap items-center justify-start">
-      <h3 v-show="pokemon.legendary" class="text-xs bg-amber-400 px-3 py-1 text-white rounded-full mr-1 mt-2">
-        Legendary
-      </h3>
-      <h3 v-show="pokemon.mythical" class="text-xs bg-indigo-400 px-3 py-1 text-white rounded-full mr-1 mt-2">
-        Mythical
-      </h3>
       <h3 v-for="type in pokemon.details" class="text-xs capitalize px-3 py-1 text-white rounded-full mr-1 mt-2" :class="typeColorMatch[type]">
         {{ type }}
       </h3>
     </div>
-  </article>
+  </router-link>
 </template>
 
 <script>

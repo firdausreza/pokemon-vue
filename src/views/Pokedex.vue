@@ -120,7 +120,6 @@
           <section v-if="!isLoadingPokemons" class="w-full py-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
             <poke-card v-if="isFiltered && !searchPrompt" v-for="pokemon in (filteredPokemons || []).slice(currentOffset, nextOffset)" :key="pokemon.id" :pokemon="pokemon" />
             <poke-card v-else-if="(isFiltered || !isFiltered) && searchPrompt" v-for="pokemon in (searchedPokemons || []).slice(currentOffset, nextOffset)" :key="pokemon.id" :pokemon="pokemon" />
-<!--            <poke-card v-else-if="!isFiltered && searchPrompt" v-for="pokemon in (searchedPokemons || []).slice(currentOffset, nextOffset)" :key="pokemon.id" :pokemon="pokemon" />-->
             <poke-card v-else v-for="pokemon in (pokemons || []).slice(currentOffset, nextOffset)" :key="pokemon.id" :pokemon="pokemon" />
           </section>
           <section v-else class="w-full py-24 flex items-center justify-center">
@@ -130,17 +129,17 @@
             <button
               @click="reduceOffset"
               class="px-4 py-2"
-              :disabled="disablePrevButton"
+              :disabled="disablePrevBtn"
             >
-              <font-awesome-icon icon="fa-solid fa-chevron-left" :class="disablePrevButton ? 'text-gray-400' : 'text-black'" />
+              <font-awesome-icon icon="fa-solid fa-chevron-left" :class="disablePrevBtn ? 'text-gray-400' : 'text-black'" />
             </button>
-            <h5 class="mx-3">{{ this.page.currentPage }} / {{ this.page.totalPage }}</h5>
+            <h5 class="mx-3 text-sm">{{ this.page.currentPage }} / {{ this.page.totalPage }}</h5>
             <button
               @click="addOffset"
               class="px-4 py-2"
-              :disabled="disableNextButton"
+              :disabled="disableNextBtn"
             >
-              <font-awesome-icon icon="fa-solid fa-chevron-right" :class="disableNextButton ? 'text-gray-400' : 'text-black'" />
+              <font-awesome-icon icon="fa-solid fa-chevron-right" :class="disableNextBtn ? 'text-gray-400' : 'text-black'" />
             </button>
           </section>
         </section>
@@ -307,6 +306,12 @@ export default {
   computed: {
     typeFiltered() {
       return (this.filter.type.filter((item) => item.selected) || []).map(item => item.label)
+    },
+    disableNextBtn() {
+      return this.page.currentPage === this.page.totalPage;
+    },
+    disablePrevBtn() {
+      return (this.page.currentPage - 1) === 0
     }
   },
   mounted() {
@@ -317,23 +322,6 @@ export default {
     }, 2500)
   },
   watch: {
-    currentOffset(newVal) {
-      if (newVal <= 0) {
-        this.currentOffset = 0
-        this.disablePrevButton = true
-      } else {
-        this.disablePrevButton = false
-      }
-    },
-    nextOffset(newVal) {
-      if (this.currentPokemonsArray === 'pokemons') {
-        this.disableNextButton = newVal >= this.pokemons.length;
-      } else if (this.currentPokemonsArray === 'filtered') {
-        this.disableNextButton = newVal >= this.filteredPokemons.length;
-      } else {
-        this.disableNextButton = newVal >= this.searchedPokemons.length;
-      }
-    },
     currentPokemonsArray(newVal) {
       if (newVal === 'pokemons') {
         this.page.currentPage = 1
@@ -385,6 +373,9 @@ export default {
       }
     },
     applyFilter() {
+      this.page.currentPage = 1
+      this.nameSearch = ''
+      this.searchPrompt = false
       this.isLoadingPokemons = true
       this.currentPokemonsArray = 'filtered'
       this.currentOffset = 0
@@ -413,11 +404,15 @@ export default {
         else return poke
       }).sort((a, b) => a.id - b.id)
 
+      this.page.totalPage = Math.ceil(this.filteredPokemons.length/20)
+
       setTimeout(() => {
         this.isLoadingPokemons = false
       }, 2500)
     },
     resetFilter() {
+      this.nameSearch = ''
+      this.searchPrompt = false
       this.isLoadingPokemons = true
       this.isFiltered = false
       this.currentPokemonsArray = 'pokemons'
@@ -442,19 +437,25 @@ export default {
         this.isLoadingPokemons = true
         this.searchPrompt = true
         if (this.isFiltered) {
+          this.page.currentPage = 1
+          this.currentOffset = 0
+          this.nextOffset = 20
           this.currentPokemonsArray = 'filtered-search'
           this.searchPrompt = true
           this.searchedPokemons = this.filteredPokemons.filter((poke) => {
             return poke.name.includes(this.nameSearch.toLowerCase())
           }).sort((a, b) => a.id - b.id)
-          this.disableNextButton = this.nextOffset >= this.searchedPokemons.length;
+          this.page.totalPage = Math.ceil(this.searchedPokemons.length/20)
         } else {
+          this.page.currentPage = 1
+          this.currentOffset = 0
+          this.nextOffset = 20
           this.currentPokemonsArray = 'pokemons-search'
           this.searchPrompt = true
           this.searchedPokemons = this.pokemons.filter((poke) => {
             return poke.name.includes(this.nameSearch.toLowerCase())
           }).sort((a, b) => a.id - b.id)
-          this.disableNextButton = this.nextOffset >= this.searchedPokemons.length;
+          this.page.totalPage = Math.ceil(this.searchedPokemons.length/20)
         }
         setTimeout(() => {
           this.isLoadingPokemons = false
@@ -462,12 +463,21 @@ export default {
       }
     },
     clearResults() {
+      this.currentOffset = 0
+      this.nextOffset = 20
       this.isLoadingPokemons = true
       this.searchPrompt = false
       this.nameSearch = ''
       this.searchedPokemons = null
-      if (this.isFiltered) this.currentPokemonsArray = 'filtered'
-      else this.currentPokemonsArray = 'pokemons'
+      if (this.isFiltered) {
+        this.currentPokemonsArray = 'filtered'
+        this.page.currentPage = 1
+        this.page.totalPage = Math.ceil(this.filteredPokemons.length/20)
+      } else {
+        this.currentPokemonsArray = 'pokemons'
+        this.page.currentPage = 1
+        this.page.totalPage = Math.ceil(this.pokemons.length/20)
+      }
       setTimeout(() => {
         this.isLoadingPokemons = false
       }, 2000)
