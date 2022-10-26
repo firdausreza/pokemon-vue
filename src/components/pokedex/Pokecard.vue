@@ -7,21 +7,23 @@
       Mythical
     </h3>
     <img :src="pokemon.official_art" :alt="pokemon.name" class="w-full">
-    <h1 class="text-sm text-gray-400 text-left w-full">#{{ pokemon.id }}</h1>
+    <h1 class="text-sm text-gray-400 text-left w-full">{{ pokedexNumber }}</h1>
     <h2 class="text-xl font-bold mt-2 capitalize text-left w-full">
       {{ pokemon.name }}
     </h2>
     <div class="w-full flex flex-wrap items-center justify-start">
-      <h3 v-for="type in pokemon.details" class="text-xs capitalize px-3 py-1 text-white rounded-full mr-1 mt-2" :class="typeColorMatch[type]">
-        {{ type }}
-      </h3>
+      <type-label v-for="type in pokemon.details" :poke-type="type" text-size="text-xs" :class="typeColorMatch[type]" class="mr-1 mt-2" />
     </div>
   </router-link>
 </template>
 
 <script>
+import TypeLabel from "../TypeLabel.vue";
 export default {
   name: "Pokecard",
+  components: {
+    TypeLabel
+  },
   props: {
     pokemon: {
       type: Object,
@@ -49,6 +51,17 @@ export default {
         ground: 'bg-yellow-800',
         poison: 'bg-purple-600',
         rock: 'bg-amber-800'
+      }
+    }
+  },
+  computed: {
+    pokedexNumber() {
+      if (this.pokemon.id && this.pokemon.id < 10) {
+        return `#00${this.pokemon.id}`
+      } else if (this.pokemon.id && this.pokemon.id < 100) {
+        return `#0${this.pokemon.id}`
+      } else {
+        return `#${this.pokemon.id}`
       }
     }
   }

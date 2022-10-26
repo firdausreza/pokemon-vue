@@ -133,7 +133,7 @@
             >
               <font-awesome-icon icon="fa-solid fa-chevron-left" :class="disablePrevBtn ? 'text-gray-400' : 'text-black'" />
             </button>
-            <h5 class="mx-3 text-sm">{{ this.page.currentPage }} / {{ this.page.totalPage }}</h5>
+            <h5 class="mx-3 text-sm">{{ this.page.currentPage }} of {{ this.page.totalPage }}</h5>
             <button
               @click="addOffset"
               class="px-4 py-2"
@@ -314,9 +314,11 @@ export default {
       return (this.page.currentPage - 1) === 0
     }
   },
+  created() {
+    this.getPokemons()
+  },
   mounted() {
     this.isLoadingPokemons = true
-    this.getPokemons()
     setTimeout(() => {
       this.isLoadingPokemons = false
     }, 2500)
