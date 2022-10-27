@@ -3,7 +3,7 @@ import Pokedex from "../views/Pokedex.vue";
 import PokeDetail from "../views/PokeDetail.vue";
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
