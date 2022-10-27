@@ -7,7 +7,7 @@
       Mythical
     </h3>
     <img :src="pokemon.official_art" :alt="pokemon.name" class="w-full">
-    <h1 class="text-sm text-gray-400 text-left w-full">{{ pokedexNumber }}</h1>
+    <h1 class="text-sm text-gray-400 text-left w-full">{{ $dexnumber(pokemon.id) }}</h1>
     <h2 class="text-xl font-bold mt-2 capitalize text-left w-full">
       {{ pokemon.name }}
     </h2>

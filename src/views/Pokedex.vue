@@ -95,23 +95,38 @@
             </span>
           </h3>
           <h4 v-show="!isLoadingPokemons" class="text-sm text-gray-400 mt-4">
-            Showing {{ this.currentOffset+1 }}
+            Showing
             <span v-if="this.currentPokemonsArray === 'pokemons'">
-              - {{ this.nextOffset > (this.pokemons && this.pokemons.length) ? this.pokemons && this.pokemons.length : this.nextOffset }}
-              of {{ this.pokemons && this.pokemons.length }} collections
+              <template v-if="this.pokemons && this.pokemons.length === 0">
+                0 of 0 collection
+              </template>
+              <template v-else>
+                {{ this.currentOffset+1 }} - {{ this.nextOffset > (this.pokemons && this.pokemons.length) ? this.pokemons && this.pokemons.length : this.nextOffset }}
+                of {{ this.pokemons && this.pokemons.length }} collections
+              </template>
             </span>
             <span v-else-if="this.currentPokemonsArray === 'filtered'">
-              - {{ this.nextOffset > (this.filteredPokemons && this.filteredPokemons.length) ? this.filteredPokemons && this.filteredPokemons.length : this.nextOffset }}
-              of {{ this.filteredPokemons && this.filteredPokemons.length }} collections
+              <template v-if="this.filteredPokemons && this.filteredPokemons.length === 0">
+                0 of 0 collection
+              </template>
+              <template v-else>
+                {{ this.currentOffset+1 }} - {{ this.nextOffset > (this.filteredPokemons && this.filteredPokemons.length) ? this.filteredPokemons && this.filteredPokemons.length : this.nextOffset }}
+                of {{ this.filteredPokemons && this.filteredPokemons.length }} collections
+              </template>
             </span>
             <span v-else>
-              - {{ this.nextOffset > (this.searchedPokemons && this.searchedPokemons.length) ? this.searchedPokemons && this.searchedPokemons.length : this.nextOffset }}
-              of {{ this.searchedPokemons && this.searchedPokemons.length }} collections
+              <template v-if="this.searchedPokemons && this.searchedPokemons.length === 0">
+                0 of 0 collection
+              </template>
+              <template v-else>
+                {{ this.currentOffset+1 }} - {{ this.nextOffset > (this.searchedPokemons && this.searchedPokemons.length) ? this.searchedPokemons && this.searchedPokemons.length : this.nextOffset }}
+                of {{ this.searchedPokemons && this.searchedPokemons.length }} collections
+              </template>
             </span>
           </h4>
           <div v-show="searchPrompt" class="w-full flex items-center justify-between text-lg mt-4">
             <h1>
-              Search results for <span class="font-bold">'{{ this.nameSearch }}'</span>
+              Search results for <span class="font-bold text-green-500">'{{ this.nameSearch }}'</span>
             </h1>
             <button @click="clearResults" class="bg-red-500 text-white text-sm px-3 py-1 rounded-md">
               Clear
@@ -196,7 +211,7 @@ export default {
       disablePrevButton: true,
       toggleTypeFilter: false,
       isFiltered: false,
-      isLoadingPokemons: false,
+      isLoadingPokemons: true,
       searchPrompt: false,
       currentPokemonsArray: '',
       nameSearch: '',
@@ -317,12 +332,6 @@ export default {
   created() {
     this.getPokemons()
   },
-  mounted() {
-    this.isLoadingPokemons = true
-    setTimeout(() => {
-      this.isLoadingPokemons = false
-    }, 2500)
-  },
   watch: {
     currentPokemonsArray(newVal) {
       if (newVal === 'pokemons') {
@@ -333,7 +342,8 @@ export default {
         this.page.totalPage = Math.ceil(this.filteredPokemons.length/20)
       } else if (newVal.includes('search')) {
         this.page.currentPage = 1
-        this.page.totalPage = Math.ceil(this.searchedPokemons.length/20)
+        if (this.searchedPokemons.length === 0) this.page.totalPage = 1
+        else this.page.totalPage = Math.ceil(this.searchedPokemons.length/20)
       }
     }
   },
@@ -350,6 +360,7 @@ export default {
           }
         })
         this.currentPokemonsArray = 'pokemons'
+        this.isLoadingPokemons = false
       })
     },
     addOffset() {
@@ -447,7 +458,6 @@ export default {
           this.searchedPokemons = this.filteredPokemons.filter((poke) => {
             return poke.name.includes(this.nameSearch.toLowerCase())
           }).sort((a, b) => a.id - b.id)
-          this.page.totalPage = Math.ceil(this.searchedPokemons.length/20)
         } else {
           this.page.currentPage = 1
           this.currentOffset = 0
@@ -457,7 +467,6 @@ export default {
           this.searchedPokemons = this.pokemons.filter((poke) => {
             return poke.name.includes(this.nameSearch.toLowerCase())
           }).sort((a, b) => a.id - b.id)
-          this.page.totalPage = Math.ceil(this.searchedPokemons.length/20)
         }
         setTimeout(() => {
           this.isLoadingPokemons = false

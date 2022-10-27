@@ -2,11 +2,18 @@
   <main class="py-12">
     <section v-if="!isLoadingPage && !errorState" class="max-w-7xl mx-auto px-4 py-8">
       <article id="detail" class="w-full flex flex-col md:flex-row items-center md:items-start justify-center">
-        <section class="max-w-[400px] p-8 bg-stone-200 rounded-lg">
-          <img :src="pokemon.image" :alt="pokemon.name" class="w-full">
+        <section class="max-w-[400px] flex flex-col items-center">
+          <div class="w-full bg-stone-200 rounded-lg p-6">
+            <img :src="pokemon.image" :alt="pokemon.name" class="w-full">
+          </div>
+          <select v-model="formSelected" id="form-select" class="w-full p-2 mt-4 bg-transparent border border-gray-400 rounded-lg focus:outline-none cursor-pointer capitalize">
+            <option v-for="form in forms" :value="form.name" :key="form.name" class="capitalize">
+              {{ form.name && form.name.includes('-') ? form.name.replace('-', ' ') : form.name }}
+            </option>
+          </select>
         </section>
         <section class="w-full md:w-[60%] flex flex-col items-start mt-6 md:mt-0 md:px-6">
-          <p class="text-lg text-gray-400">{{ pokedexNumber }}</p>
+          <p class="text-lg text-gray-400">{{ $dexnumber(pokemon_id) }}</p>
           <h1 class="text-4xl font-bold capitalize mt-2">
             {{ pokemon.name }}
             <span v-show="pokemon.gender_rate === 1">
@@ -14,16 +21,17 @@
               <font-awesome-icon icon="fa-solid fa-mars" class="fa-xs text-blue-400" />
             </span>
           </h1>
-          <div class="w-full flex items-center justify-start">
+          <div class="w-full flex items-center justify-start mt-2">
             <type-label
               v-for="type in pokemon.detail?.filter((poke) => poke.name.toLowerCase() === pokemon.name.toLowerCase())[0].types"
+              :key="type"
               :poke-type="type"
               text-size="text-md"
               :class="typeColorMatch[type]"
-              class="mr-1 mt-2"
+              class="mr-2"
             />
           </div>
-          <h2 class="text-xl mt-2">{{ description }}</h2>
+          <h2 class="text-lg mt-2 font-light">{{ description }}</h2>
         </section>
       </article>
     </section>
@@ -51,6 +59,7 @@ export default {
       pokemon_id: 0,
       description: null,
       forms: null,
+      formSelected: '',
       games: null,
       typeColorMatch: {
         grass: 'bg-green-500',
@@ -75,32 +84,22 @@ export default {
     }
   },
   computed: {
-    pokedexNumber() {
-      if (this.pokemon_id && this.pokemon_id < 10) {
-        return `#00${this.pokemon_id}`
-      } else if (this.pokemon_id && this.pokemon_id < 100) {
-        return `#0${this.pokemon_id}`
-      } else {
-        return `#${this.pokemon_id}`
-      }
-    }
+    // pokedexNumber() {
+    //   if (this.pokemon_id && this.pokemon_id < 10) {
+    //     return `#00${this.pokemon_id}`
+    //   } else if (this.pokemon_id && this.pokemon_id < 100) {
+    //     return `#0${this.pokemon_id}`
+    //   } else {
+    //     return `#${this.pokemon_id}`
+    //   }
+    // },
   },
   created() {
     this.getPokemon()
   },
-  mounted() {
-    setTimeout(() => {
-      if (this.pokemon) {
-        this.isLoadingPage = false
-      } else {
-        this.isLoadingPage = false
-        this.errorState = false
-      }
-    }, 2500)
-  },
   methods: {
     getPokemon() {
-      const { onResult } = useQuery(gql`
+      const { onResult, onError } = useQuery(gql`
         query getPokemonDetail {
           pokemon: pokemon_v2_pokemonspecies(where: {name: {_in: ${this.$route.params.name}}}) {
             name
@@ -169,6 +168,7 @@ export default {
           detail: pokemonObj.detail.map((item) => {
             return {
               ...item,
+              abilities: item.abilities.map((ab) => ab.ability),
               stats: item.stats.map((stat) => ({...stat, name: stat.name.name})),
               types: item.types.map((type) => type.type.name),
               forms: item.forms[0]
@@ -177,13 +177,18 @@ export default {
         }
         this.pokemon_id = this.pokemon.id
         this.games = this.pokemon.gen_region.games
-        this.forms = this.pokemon.detail?.forms?.map((form) => form.name)
+        this.isLoadingPage = false
         await this.getDescriptions()
         await this.getForms()
       })
+
+      onError((err) => {
+        console.log(err)
+        this.errorState = true
+      })
     },
     getDescriptions() {
-      const { onResult } = useQuery(gql`
+      const { onResult, onError } = useQuery(gql`
         query getDescriptions {
           desc: pokemon_v2_pokemonspeciesflavortext(where: {pokemon_v2_language: {name: {_eq: "en"}}, pokemon_species_id: {_eq: ${this.pokemon_id}}}) {
             text: flavor_text
@@ -197,9 +202,14 @@ export default {
       onResult((result) => {
         this.description = result.data.desc[0].text.replaceAll('\n', ' ').replaceAll('\f', ' ')
       })
+
+      onError((err) => {
+        console.log(err)
+        this.errorState = true
+      })
     },
     getForms() {
-      const { onResult } = useQuery(gql`
+      const { onResult, onError } = useQuery(gql`
         query getForms {
           forms: pokemon_v2_pokemon(where: {pokemon_species_id: {_eq: ${this.pokemon_id}}}) {
             form: pokemon_v2_pokemonforms {
@@ -213,6 +223,12 @@ export default {
       onResult((res) => {
         const forms = res.data.forms
         this.forms = forms.map((form) => form.form[0])
+        this.formSelected = this.forms && this.forms[0].name
+      })
+
+      onError((err) => {
+        console.log(err)
+        this.errorState = true
       })
     }
   }

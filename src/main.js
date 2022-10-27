@@ -3,6 +3,7 @@ import App from './App.vue'
 import router from './router'
 import { ApolloClient, InMemoryCache } from "@apollo/client/core";
 import {provideApolloClient} from "@vue/apollo-composable";
+import pokedexNumbers from "@/plugins/pokedexNumbers";
 
 import './assets/main.css'
 
@@ -31,5 +32,6 @@ const app = createApp({
 })
 
 app.use(router)
+app.use(pokedexNumbers)
 
 app.component('font-awesome-icon', FontAwesomeIcon).mount('#app')
