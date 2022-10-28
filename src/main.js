@@ -14,10 +14,11 @@ import { library } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
 /* import specific icons */
-import { faChevronDown, faChevronLeft, faChevronRight, faVenus, faMars } from '@fortawesome/free-solid-svg-icons'
+import { faChevronDown, faChevronLeft, faChevronRight, faVenus, faMars, faXmark } from '@fortawesome/free-solid-svg-icons'
+import { faCircleQuestion } from '@fortawesome/free-regular-svg-icons'
 
 /* add icons to the library */
-library.add(faChevronDown, faChevronLeft, faChevronRight, faVenus, faMars)
+library.add(faChevronDown, faChevronLeft, faChevronRight, faVenus, faMars, faCircleQuestion, faXmark)
 
 const apolloClient = new ApolloClient({
   cache: new InMemoryCache(),

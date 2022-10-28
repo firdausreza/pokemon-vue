@@ -1,29 +1,25 @@
 <template>
   <main class="py-12">
     <section v-if="!isLoadingPage && !errorState" class="max-w-7xl mx-auto px-4 py-8">
-      <article id="detail" class="w-full flex flex-col md:flex-row items-center md:items-start justify-center">
-        <section class="max-w-[400px] flex flex-col items-center">
+      <article v-show="(currentFormData && true)" id="detail" class="w-full flex flex-col md:flex-row items-center md:items-start justify-center">
+        <section class="max-w-[400px] max-h-[400px] flex flex-col items-center">
           <div class="w-full bg-stone-200 rounded-lg p-6">
-            <img :src="pokemon.image" :alt="pokemon.name" class="w-full">
+            <img :src="(currentFormData || {}).image" :alt="(currentFormData || {}).name" class="w-full">
           </div>
-          <select v-model="formSelected" id="form-select" class="w-full p-2 mt-4 bg-transparent border border-gray-400 rounded-lg focus:outline-none cursor-pointer capitalize">
+          <select v-model="formSelected" id="form-select" class="w-full p-2 mt-4 border border-gray-400 rounded-lg focus:outline-none cursor-pointer capitalize">
             <option v-for="form in forms" :value="form.name" :key="form.name" class="capitalize">
-              {{ form.name && form.name.includes('-') ? form.name.replace('-', ' ') : form.name }}
+              {{ form.form_name + ' ' + pokemon.name }}
             </option>
           </select>
         </section>
-        <section class="w-full md:w-[60%] flex flex-col items-start mt-6 md:mt-0 md:px-6">
+        <section class="w-full md:w-[50%] flex flex-col items-start mt-6 md:mt-0 md:px-6">
           <p class="text-lg text-gray-400">{{ $dexnumber(pokemon_id) }}</p>
-          <h1 class="text-4xl font-bold capitalize mt-2">
+          <h1 class="text-4xl font-bold capitalize mt-4">
             {{ pokemon.name }}
-            <span v-show="pokemon.gender_rate === 1">
-              <font-awesome-icon icon="fa-solid fa-venus" class="fa-xs mr-2 text-pink-400" />
-              <font-awesome-icon icon="fa-solid fa-mars" class="fa-xs text-blue-400" />
-            </span>
           </h1>
-          <div class="w-full flex items-center justify-start mt-2">
+          <div class="w-full flex items-center justify-start mt-4">
             <type-label
-              v-for="type in pokemon.detail?.filter((poke) => poke.name.toLowerCase() === pokemon.name.toLowerCase())[0].types"
+              v-for="type in (currentFormData || []).types"
               :key="type"
               :poke-type="type"
               text-size="text-md"
@@ -31,7 +27,61 @@
               class="mr-2"
             />
           </div>
-          <h2 class="text-lg mt-2 font-light">{{ description }}</h2>
+          <h2 class="text-lg mt-4 font-light">{{ description }}</h2>
+          <section
+            id="detail-card"
+            class="relative w-full h-[250px] px-6 py-4 flex items-start bg-blue-500 rounded-lg text-lg text-white mt-4"
+            :class="showAbility ? 'z-0' : 'z-10'"
+          >
+            <div class="w-[50%] flex flex-col justify-start">
+              <div class="w-full flex flex-col justify-start">
+                <h3>Height:</h3>
+                <p class="mt-1 font-bold" v-html="generatedHeight"></p>
+              </div>
+              <div class="w-full flex flex-col justify-start mt-2">
+                <h3>Weight:</h3>
+                <p class="mt-1 font-bold">{{ generatedWeight }} <span class="text-sm">lbs</span></p>
+              </div>
+              <div class="w-full flex flex-col justify-start mt-2">
+                <h3>Gender:</h3>
+                <span v-if="pokemon.gender_rate === 1" class="mt-1">
+                  <font-awesome-icon icon="fa-solid fa-venus" class="fa-xl mr-2" />
+                  <font-awesome-icon icon="fa-solid fa-mars" class="fa-xl" />
+                </span>
+                <p v-else class="mt-1 font-bold">None/Genderless</p>
+              </div>
+            </div>
+            <div class="w-[50%] flex flex-col justify-start">
+              <h3>Ability:</h3>
+              <ul class="list-disc">
+                <li v-for="ability in (currentFormData || {}).abilities" class="mt-2 font-bold capitalize ml-[1.5rem]">
+                  {{ ability.name }}
+                  <font-awesome-icon
+                    icon="fa-regular fa-circle-question"
+                    class="fa-lg ml-2 cursor-pointer"
+                    @click="showAbilityInfo(ability.name)"
+                  />
+                </li>
+              </ul>
+            </div>
+            <section
+              class="absolute top-0 left-0 w-full h-[250px] flex flex-col justify-start bg-zinc-700 rounded-lg text-white transition-opacity"
+              :class="showAbility ? 'opacity-100 z-10' : 'opacity-0 -z-10'"
+            >
+              <div class="w-full flex items-center justify-between pl-6">
+                <h1 class="text-lg">Ability info:</h1>
+                <button @click="showAbility = false" class="text-sm px-4 py-4 rounded-bl-lg rounded-r-lg bg-zinc-900 flex items-center">
+                  <font-awesome-icon icon="fa-solid fa-xmark" class="fa-lg mr-2" />
+                  close
+                </button>
+              </div>
+              <div class="w-full px-6 py-5">
+                <p class="text-md">
+                  {{ generateAbilityInfo }}
+                </p>
+              </div>
+            </section>
+          </section>
         </section>
       </article>
     </section>
@@ -61,6 +111,8 @@ export default {
       forms: null,
       formSelected: '',
       games: null,
+      showAbility: false,
+      abilityInfoSelected: '',
       typeColorMatch: {
         grass: 'bg-green-500',
         water: 'bg-blue-500',
@@ -83,19 +135,36 @@ export default {
       }
     }
   },
-  computed: {
-    // pokedexNumber() {
-    //   if (this.pokemon_id && this.pokemon_id < 10) {
-    //     return `#00${this.pokemon_id}`
-    //   } else if (this.pokemon_id && this.pokemon_id < 100) {
-    //     return `#0${this.pokemon_id}`
-    //   } else {
-    //     return `#${this.pokemon_id}`
-    //   }
-    // },
-  },
   created() {
     this.getPokemon()
+  },
+  computed: {
+    currentFormData() {
+      if (this.formSelected !== '') {
+        let pokemon = {
+          ...(this.pokemon || []).detail?.filter((poke) => poke.name.toLowerCase() === this.formSelected)[0]
+        }
+        pokemon.image = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemon.forms.pokemon_id}.png`
+        return pokemon
+      }
+    },
+    generatedNames() {
+
+    },
+    generatedHeight() {
+      let inches = ((((this.currentFormData || {}).height || 0) * 10) * 0.393700787).toFixed(0)
+      const feet = Math.floor(inches / 12)
+      inches %= 12
+      return `${feet} <span class="text-sm">ft</span> ${inches} <span class="text-sm">in</span>`
+    },
+    generatedWeight() {
+      return Math.round((((this.currentFormData || {}).weight || 0) / 4.536) * 100) / 100
+    },
+    generateAbilityInfo() {
+      if (this.abilityInfoSelected !== '') {
+        return (this.currentFormData || {}).abilities.filter((abl) => abl.name === this.abilityInfoSelected)[0].desc[0].effect
+      }
+    }
   },
   methods: {
     getPokemon() {
@@ -120,6 +189,7 @@ export default {
             }
             detail: pokemon_v2_pokemons {
               name
+              weight
               height
               abilities: pokemon_v2_pokemonabilities {
                 ability: pokemon_v2_ability {
@@ -136,6 +206,7 @@ export default {
                 }
               }
               forms: pokemon_v2_pokemonforms {
+                pokemon_id
                 name
                 form_name
               }
@@ -174,6 +245,7 @@ export default {
               forms: item.forms[0]
             }
           }),
+          evolution: pokemonObj.evolution.species.map((item) => ({ ...item, image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${item.id}.png` }))
         }
         this.pokemon_id = this.pokemon.id
         this.games = this.pokemon.gen_region.games
@@ -213,6 +285,7 @@ export default {
         query getForms {
           forms: pokemon_v2_pokemon(where: {pokemon_species_id: {_eq: ${this.pokemon_id}}}) {
             form: pokemon_v2_pokemonforms {
+              pokemon_id
               name
               form_name
             }
@@ -230,6 +303,10 @@ export default {
         console.log(err)
         this.errorState = true
       })
+    },
+    showAbilityInfo(name) {
+      this.showAbility = true
+      this.abilityInfoSelected = name
     }
   }
 }
