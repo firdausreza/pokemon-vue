@@ -77,7 +77,7 @@
               </div>
               <div class="w-full px-6 py-5">
                 <p class="text-md">
-                  {{ generateAbilityInfo }}
+                  {{ abilityInfo }}
                 </p>
               </div>
             </section>
@@ -113,6 +113,7 @@ export default {
       games: null,
       showAbility: false,
       abilityInfoSelected: '',
+      abilityInfo: '',
       typeColorMatch: {
         grass: 'bg-green-500',
         water: 'bg-blue-500',
@@ -162,7 +163,14 @@ export default {
     },
     generateAbilityInfo() {
       if (this.abilityInfoSelected !== '') {
-        return (this.currentFormData || {}).abilities.filter((abl) => abl.name === this.abilityInfoSelected)[0].desc[0].effect
+        return ((this.currentFormData || {}).abilities.filter((abl) => abl.name === this.abilityInfoSelected)[0].desc[0]?.effect || '')
+      }
+    }
+  },
+  watch: {
+    abilityInfoSelected(newVal) {
+      if (newVal !== '') {
+        this.abilityInfo = ((this.currentFormData || {}).abilities.filter((abl) => abl.name === newVal)[0].desc[0]?.effect || '')
       }
     }
   },
