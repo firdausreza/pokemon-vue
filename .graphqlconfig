@@ -1,0 +1,15 @@
+{
+  "name": "PokeAPI GraphQL Schema",
+  "schemaPath": "./path/to/schema.graphql",
+  "extensions": {
+    "endpoints": {
+      "Default GraphQL Endpoint": {
+        "url": "https://beta.pokeapi.co/graphql/v1beta",
+        "headers": {
+          "user-agent": "PokeAPI GraphQL"
+        },
+        "introspect": false
+      }
+    }
+  }
+}
