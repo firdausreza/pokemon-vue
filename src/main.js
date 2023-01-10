@@ -4,6 +4,7 @@ import router from './router'
 import { ApolloClient, InMemoryCache } from "@apollo/client/core";
 import {provideApolloClient} from "@vue/apollo-composable";
 import pokedexNumbers from "@/plugins/pokedexNumbers";
+import VueGtag from "vue-gtag";
 
 import './assets/main.css'
 
@@ -34,5 +35,6 @@ const app = createApp({
 
 app.use(router)
 app.use(pokedexNumbers)
+app.use(VueGtag, { config: { id: 'G-GSHVZE6JZ3' } })
 
 app.component('font-awesome-icon', FontAwesomeIcon).mount('#app')

@@ -331,6 +331,9 @@ export default {
   },
   created() {
     this.getPokemons()
+
+    // G-tag
+    this.$gtag.pageview('/pokedex')
   },
   watch: {
     currentPokemonsArray(newVal) {

@@ -19,6 +19,7 @@
     "graphql": "^16.6.0",
     "graphql-tag": "^2.12.6",
     "vue": "^3.2.38",
+    "vue-gtag": "^2.0.1",
     "vue-router": "^4.1.5"
   },
   "devDependencies": {
