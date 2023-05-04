@@ -331,9 +331,6 @@ export default {
   },
   created() {
     this.getPokemons()
-
-    // G-tag
-    this.$gtag.pageview('/pokedex')
   },
   watch: {
     currentPokemonsArray(newVal) {
@@ -364,6 +361,8 @@ export default {
         })
         this.currentPokemonsArray = 'pokemons'
         this.isLoadingPokemons = false
+        
+        this.$gtmFunction.viewItemList(this.pokemons.slice(0, 20), { id: "pokedex", name: "Pokedex" });
       })
     },
     addOffset() {

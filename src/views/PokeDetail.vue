@@ -138,9 +138,6 @@ export default {
   },
   created() {
     this.getPokemon()
-
-    // G-tag
-    this.$gtag.pageview('/poke-detail')
   },
   computed: {
     currentFormData() {
